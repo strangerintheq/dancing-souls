@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Dancing Souls</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <meta property="og:image" content="thumbnail.png"/>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+
+        }
+
+        canvas {
+            --s: min(100vw, 100vh);
+            width: var(--s);
+            height: var(--s);
+            margin: calc(50vh - calc(0.5 * var(--s))) auto;
+            display: block;
+        }
+    </style>
+</head>
+<body style="">
+<canvas id=c></canvas>
+<script>
+    window.tokenData = {hash: "0x" + Array(64).fill(0).map(() => ((Math.random() * 16) | 0).toString(16)).join("")}
+    // console.log(tokenData.hash)
+    ;
+    (function () {
+        const parseHex = (hex, offset, len) => parseInt(hex.substr(offset, len), 16)
+        const prng = (hash, S, s, t) => {
+            S = new Uint32Array([0, 1, s = t = 2, 3].map(i => parseHex(hash, i * 8, 8)));
+            return (_) => (t = S[3], S[3] = S[2], S[2] = S[1], S[1] = s = S[0],
+                t ^= (t << 11), S[0] ^= t ^ t >>> 8 ^ s >>> 19, S[0] / 2 ** 32);
+        };
+        const prng2x = (hash, i = 0, a = prng(hash.substr(2)),
+                        b = prng(hash.substr(34))) => (_) => ++i % 2 ? a() : b();
+        Math.random = prng2x(tokenData.hash);
+    })();
+</script>
+<!-- prng.js -->
+<script>
+
+    function Random(seed) {
+        this._seed = seed % 2147483647;
+        if (this._seed <= 0)
+            this._seed += 2147483646;
+    }
+
+    Random.prototype.next = function () {
+        return this._seed = this._seed * 16807 % 2147483647;
+    };
+
+    Random.prototype.nextFloat = function () {
+        return (this.next() - 1) / 2147483646;
+    };
+
+
+    let prng = new Random(0);
+
+    function newPrng(seed) {
+        prng = new Random(seed | (Math.random() * 1e7) | 0)
+    }
+
+    function rnd(x) {
+        return prng.nextFloat() * (x || 1);
+    }
+
+    function rand(size) {
+        let k = 1;
+        k *= (rnd() - 0.5)
+        k *= (rnd() - 0.5)
+        k += (rnd() - 0.5) / 2.
+        return size * k
+    }
+</script>
+<!-- palette.js -->
+<script>
+
+    const palettes = {
+
+        "Maple": ["#F2F1DF", "#F2BD1D",
+            "#D94711", "#591812", "#181212"
+        ],
+
+        "Desert": ["#e8d5b9", "#c07a38",
+            "#df3146", "#f5b349", "#0e2430"],
+
+        "Nepal": ['#f3efef', '#f7b32b',
+            '#0c6291', '#b80c09', '#091e05'],
+
+        "Ocean": ['#f1faee', '#e63946', '#a8ccdc',
+            '#457b9d', '#1d3557'],
+
+        "Orchid": ['#dff3e4', '#bca2cd',
+            '#7d73c6', '#684da2', '#171738'
+        ],
+
+        "Supreme": ['#dccfa3', '#9f8f65',
+            '#44443b', '#c6110f', '#12130b',],
+
+        'Juice': ['#fff7f4', '#ffc6c6',
+            '#ff2f4e', '#c60a5f', '#820a5f',
+        ],
+
+        "Jamaica": ['#faf1dc', '#ff871f',
+            '#b80000', '#41764b', '#29293d'],
+
+        "Oak": ["#ccc9a1", "#f0ffce"
+            , "#a53f2b", "#60290e", "#280004"],
+
+        "Forest": ['#ecf39e', '#90a955',
+            '#4f772d', '#31572c', '#132a13'],
+
+        "Berry": ['#fdf0d5', '#669bbc',
+            '#c1121f', '#780000', '#003049'],
+
+        "Winter": ['#e0fbfc', '#98c1d9',
+            '#ee6c4d', '#3d5a80', '#293241'],
+
+        "Rome": ["#fbfffe", "#96031a", "#1b1b1e",
+            "#6d676e", "#faa916"],
+
+        "Pumpkin": ["#fffcf2", "#ccc5b9",
+            "#503d39", "#252422", "#eb5e28"],
+
+        "Beach": ["#8ecae6", "#219ebc",
+            "#023047", "#ffb703", "#fb8500"],
+
+        "Mono": ['#000000', '#FFFFFF', '#dddddd',
+            '#444444', '#888888'],
+
+        "Steel": ["#252323", "#70798c",
+            "#f5f1ed", "#dad2bc", "#a99985"],
+
+        "Peace": ["#ffffff", "#375ba9", "#000000",
+            "#d6d6d6", "#fca311"],
+
+        "Joy": ['#f4ca55', '#284862',
+            '#d6644a', '#3a8aca', '#fffeef'],
+
+        "Love": ['#C20F00', '#2374C6', '#FFDD22',
+            '#ffffff', '#000000'],
+
+        "Peru": ["#e4e1db", "#D96B0B",
+            "#BF1304", "#8C1308", "#4465A6"],
+
+        "Toy": ["#f4ebc5", "#F29F05",
+            "#233479", "#569cc7", "#F20505"],
+
+        "Japan": ["#001427", "#708d81",
+            "#f4d58d", "#bf0603", "#8d0801"],
+
+        "Texas": ['#8c1c13', '#bf4342',
+            '#e7d7c1', '#a78a7f', '#735751']
+
+    };
+
+    const palette = () => {
+        let all = Object.values(palettes)
+        let colors;
+
+        return {
+            w: "#ffffff",
+            b: "#000000",
+            pick() {
+                return colors[rnd(5) | 0]
+            },
+            next() {
+                colors = all[rnd(all.length) | 0]
+            }
+        }
+    };
+
+    function nextLightColor() {
+        let c = p.pick();
+        while (!checkColor(c)) {
+            for (let i = 0; i < 10; i++) {
+                if (checkColor(c)) {
+                    break
+                } else {
+                    c = p.pick();
+                }
+            }
+            p.next()
+        }
+
+        return c
+
+    }
+
+    function checkColor(c) {
+        c = c.substring(1);
+        const rgb = parseInt(c, 16);
+        const r = (rgb >> 16) & 0xff;
+        const g = (rgb >> 8) & 0xff;
+        const b = (rgb >> 0) & 0xff;
+
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b > 200
+    }
+</script>
+<!-- brush.js -->
+<script>
+    function brush() {
+        let points, max, len, edg;
+
+        function randomize() {
+            edg = rnd(0.009) + 0.99;
+            len = 100 * kk + rnd(800) * kk;
+            max = 2000 * kk + rnd(4000) * kk
+        }
+
+        randomize()
+        return {
+            reset() {
+                points = []
+            },
+            randomize,
+            nearest(pt, maxDist) {
+                maxDist = maxDist || max;
+                points.forEach(p => {
+                    let dx = p.x - pt.x;
+                    let dy = p.y - pt.y;
+                    let d = dx *dx + dy *dy;
+                    if (d < maxDist && rnd() > edg) {
+                        line(p, pt);
+                    }
+                });
+
+                points.push(pt);
+
+                if (points.length > len)
+                    points.shift();
+            }
+        }
+    }
+</script>
+<!-- 3d-view.js -->
+<script>
+    const view = () => {
+        let k, a1, a2, far;
+        return {
+            init() {
+                k = 800 * kk;
+                a1 = rnd() * 17;
+                a2 = rnd() * 17;
+                far = 4;
+            },
+            project(p) {
+                const x = p.x * cos(a1) + p.z * sin(a1);
+                const z = p.z * cos(a1) - p.x * sin(a1);
+                const y = p.y * cos(a2) + z * sin(a2);
+                const d = z * cos(a2) - p.y * sin(a2) + far;
+                return {
+                    x: (k / d) * x,
+                    y: (k / d) * y
+                }
+            }
+        };
+    };
+</script>
+<!-- canvas-2d.js -->
+<script>
+
+    let ctx = c.getContext("2d");
+
+    let cos = Math.cos,
+        sin = Math.sin;
+
+
+    function line(p0, p) {
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    }
+
+    function clear(color) {
+        ctx.fillStyle = color;
+        ctx.fillRect(-1e5, -1e5, 2e5, 2e5);
+    }
+</script>
+<!-- noise.js -->
+<script>
+    function fade(t) {
+        return t * t * t * (t * (t * 6 - 15) + 10);
+    }
+
+    function lerp(t, a, b) {
+        return a + t * (b - a);
+    }
+
+    function grad(hash, x, y, z) {
+        // Convert lo 4 bits of hash code into 12 gradient directions.
+        var h = hash & 15,
+            u = h < 8 ? x : y,
+            v = h < 4 ? y : h == 12 || h == 14 ? x : z;
+        return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+    }
+
+    function scale(n) {
+        return (1 + n) / 2;
+    }
+
+    var pm = new Array(512);
+
+    var permutation = [
+        151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36, 103, 30, 69, 142, 8, 99,
+        37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0, 26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32,
+        57, 177, 33, 88, 237, 149, 56, 87, 174, 20, 125, 136, 171, 168, 68, 175, 74, 165, 71, 134, 139, 48, 27, 166,
+        77, 146, 158, 231, 83, 111, 229, 122, 60, 211, 133, 230, 220, 105, 92, 41, 55, 46, 245, 40, 244, 102, 143,
+        54, 65, 25, 63, 161, 1, 216, 80, 73, 209, 76, 132, 187, 208, 89, 18, 169, 200, 196, 135, 130, 116, 188, 159,
+        86, 164, 100, 109, 198, 173, 186, 3, 64, 52, 217, 226, 250, 124, 123, 5, 202, 38, 147, 118, 126, 255, 82,
+        85, 212, 207, 206, 59, 227, 47, 16, 58, 17, 182, 189, 28, 42, 223, 183, 170, 213, 119, 248, 152, 2, 44,
+        154, 163, 70, 221, 153, 101, 155, 167, 43, 172, 9, 129, 22, 39, 253, 19, 98, 108, 110, 79, 113, 224, 232,
+        178, 185, 112, 104, 218, 246, 97, 228, 251, 34, 242, 193, 238, 210, 144, 12, 191, 179, 162, 241, 81, 51,
+        145, 235, 249, 14, 239, 107, 49, 192, 214, 31, 181, 199, 106, 157, 184, 84, 204, 176, 115, 121, 50, 45,
+        127, 4, 150, 254, 138, 236, 205, 93, 222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180
+    ];
+
+    for (let i = 0; i < 256; i++) {
+        pm[256 + i] = pm[i] = permutation[i];
+    }
+
+    function noise2d(x, y) {
+        // Find unit square that contains point.
+        var X = Math.floor(x) & 255,
+            Y = Math.floor(y) & 255;
+        // Find relative x,y of point in square.
+        x -= Math.floor(x);
+        y -= Math.floor(y);
+        // Compute fade curves for each of x,y.
+        var u = fade(x),
+            v = fade(y);
+        // Hash coordinates of the corners.
+        var A = pm[X] + Y, AA = pm[A], AB = pm[A + 1],
+            B = pm[X + 1] + Y, BA = pm[B], BB = pm[B + 1];
+
+        // Add blended results from the corners.
+        return scale(
+            lerp(
+                v,
+                lerp(
+                    u,
+                    grad(pm[AA], x, y, 0),
+                    grad(pm[BA], x - 1, y, 0)
+                ),
+                lerp(
+                    u,
+                    grad(pm[AB], x, y - 1, 0),
+                    grad(pm[BB], x - 1, y - 1, 0)
+                )
+            )
+        );
+    }
+</script>
+<!-- name.js -->
+<script>
+    function name() {
+        let rnd = n => (Math.random() * n) | 0;
+        let many = (m, n) => [...Array(rnd(n) + m)].map((_, i) => i);
+        let choose = a => a.sort(() => rnd(2) - 1).pop()
+        let end = s => s + choose(['ae', 'um', 'us', 'is', 'ei', 'ia']);
+        let char = i => choose((i % 2 ? 'aeiouy' : 'bcdfghjklmnpqrstvwxz').split(''));
+        let root = () => many(2, 6).reverse().map(char).join('');
+        return many(2, 1).map(root).map(end).join(' ');
+    }
+</script>
+<!-- script.js -->
+<script>
+    let att, size, kk = Math.min(innerHeight, innerWidth) / 1024;
+    const attr = attractor();
+    const br = brush();
+    const p = palette();
+    const v = view();
+
+    newPrng()
+
+    newPainting();
+
+    function newPainting(e) {
+        if (e && e.button !== 0)
+            return
+        init();
+        clear(`hsl(210,44%,${rnd(11)}%)`);
+        ctx.lineWidth =  kk;
+        rays()
+        ctx.lineWidth = (rnd(0.5) + 0.5) * kk;
+        dust();
+        bubbles();
+        p.next()
+
+        let number = (rnd(2) + 2) | 0;
+        for (let j = 0; j < number; j++) {
+            oneCreature()
+        }
+
+        // for (let j = 0; j <2; j++){
+        //     ctx.strokeStyle = p.pick() + '90';
+        //     ctx.strokeRect(
+        //         -490*kk + rnd(8)-4,
+        //         -490*kk+ rnd(8)-4,
+        //         980*kk+ rnd(8)-4,
+        //         980*kk+ rnd(8)-4
+        //     )
+        // }
+
+    }
+
+    function oneCreature() {
+        let start = [rnd(4) - 2, rnd(4) - 2, rnd(4) - 2]
+        const shift = rnd(0.1)
+        for (let n = 0; n < 444; n++) {
+            // ctx.strokeStyle = (baseColor+rnd(10)|0) + '0';
+            br.reset()
+            att = createAttractor()
+            attr.setFunction(att());
+            attr.set(...start)
+            ctx.strokeStyle = p.pick() + "20";
+            if (n % 5 === 0) {
+                let pt = v.project(attr.p);
+                bubble(pt.x, pt.y, rnd(33) * kk + 21 * kk);
+            }
+            let len = rnd(200) + 200
+            attr.set(
+                start[0] + shift,
+                start[1] + shift,
+                start[2] + shift,
+            )
+
+            for (let j = 0; j < len; j++) {
+                attr.tick();
+                let pt = v.project(attr.p);
+                br.nearest(pt);
+            }
+            if (n % 50 === 0) {
+                let pt = v.project(attr.p);
+                bubble(pt.x, pt.y, rnd(5) * kk + 5 * kk);
+            }
+        }
+    }
+
+    function init() {
+        size = Math.min(innerHeight, innerWidth);
+        kk = size / 1024
+        c.width = size;
+        c.height = size;
+        ctx.translate(size / 2, size / 2)
+        p.next()
+        v.init()
+    }
+
+    function rays() {
+        ctx.strokeStyle = p.pick() + '10'
+
+        let sh = rnd(500 * kk) - 250 * kk
+        let nz = rnd(111 * kk)
+        for (let j = 0; j < 200000; j++) {
+
+            ctx.lineWidth = Math.max(0.1, noise2d(j / 200  + nz, nz) - 0.5)*kk
+            let x = j / 20 * kk - 500 * kk + sh;
+            if (rnd() > 0.99)
+                ctx.strokeStyle = p.pick() + '10'
+            line({
+                x: x,
+                y: -600 * kk
+            }, {
+                x: x * 2 + rnd(100 * kk) - 50 * kk,
+                y: rnd(1000 * kk) - 500 * kk
+            })
+        }
+    }
+
+    function dust() {
+        const shift = rnd(33333) * kk
+        const sc = rnd(500 * kk) + 300 * kk
+
+        for (let i = 0; i < 2222; i++) {
+            let x = rand(size)
+            let y = rand(size)
+            ctx.fillStyle = nextLightColor();
+            let s = noise2d(x / sc + shift, y / sc + shift) * kk
+            if (rnd() < s)
+                ctx.fillRect(x, y, s * 1.4, s * 1.4)
+        }
+    }
+
+    function bubbles() {
+        p.next()
+        const circ = 3 + rnd(11) | 0;
+        for (let i = 0; i < circ; i++) {
+            br.reset();
+            ctx.strokeStyle = nextLightColor() + '10';
+            let x = rand(size);
+            let y = rand(size);
+            let r = 11 * kk + rnd(44) * kk
+            bubble(x, y, r)
+        }
+    }
+
+    function bubble(x, y, r) {
+        for (let a = 0; a < 7; a += 0.03) {
+            br.nearest({
+                x: x + Math.cos(a) * r + rnd(5) * kk,
+                y: y + Math.sin(a) * r + rnd(5) * kk
+            }, rnd() > 0.5 ? null : r * r * (kk + rnd() * kk))
+        }
+        if (rnd() > 0.5)
+            return
+        x += r * 0.4 * (rnd() - 0.5) * kk;
+        y -= r * 0.4 * (rnd() - 0.5) * kk;
+        r *= rnd(0.4) + 0.2 * kk
+        for (let a = 0; a < 7; a += 0.03) {
+            br.nearest({
+                x: x + Math.cos(a) * r,
+                y: y + Math.sin(a) * r
+            })
+        }
+    }
+
+    function attractor() {
+        let fn;
+        const p = {x: 0, y: 0, z: 0}
+        return {
+            setFunction(f) {
+                fn = f;
+            },
+            set(x = 0, y = 0, z = 0) {
+                p.x = x;
+                p.y = y;
+                p.z = z;
+            },
+            tick() {
+                fn(p)
+            },
+
+            p
+        }
+    }
+
+    function createAttractor() {
+
+        const fx = rnd() > 0.5 ? sin : cos;
+        const fy = rnd() > 0.5 ? sin : cos;
+        const fz = rnd() > 0.5 ? sin : cos;
+
+        return () => {
+            const b = rnd(0.15) + 0.15
+            const t = rnd() * 0.01 + 0.005;
+            return (p) => {
+                const dx = fx(p.y) - b * p.x;
+                const dy = fy(p.z) - b * p.y;
+                const dz = fz(p.x) - b * p.z;
+
+                p.x += t * dx;
+                p.y += t * dy;
+                p.z += t * dz
+            }
+        }
+    }
+
+</script>
+</body>
+</html>
